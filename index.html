@@ -449,7 +449,6 @@
             margin: 8px 0;
         }
 
-        /* Responsive adjustments */
         @media (max-width: 480px) {
             body {
                 padding: 0;
@@ -467,7 +466,6 @@
             }
         }
 
-        /* For embedding in iframes */
         @media (max-height: 500px) {
             .welcome-message {
                 padding: 20px;
@@ -553,7 +551,14 @@
 
     <script>
         // Configuration - Change this URL to production when ready
-        const WEBHOOK_URL = 'https://n8n-service-1.azurewebsites.net/webhook-test/252eac07-2765-41f9-8fce-e05c8fd5acc1';
+        const WEBHOOK_URL = 'https://n8n-service-1.azurewebsites.net/webhook/252eac07-2765-41f9-8fce-e05c8fd5acc1';
+        
+        // Generate unique session ID for memory persistence
+        const sessionId = localStorage.getItem('awolSessionId') || (() => {
+            const id = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('awolSessionId', id);
+            return id;
+        })();
         
         const messagesContainer = document.getElementById('messagesContainer');
         const messageInput = document.getElementById('messageInput');
@@ -568,7 +573,6 @@
         }
 
         function addMessage(content, isUser = false) {
-            // Hide welcome message on first interaction
             if (isFirstMessage) {
                 welcomeMessage.style.display = 'none';
                 isFirstMessage = false;
@@ -591,7 +595,6 @@
                 </div>
             `;
 
-            // Insert before typing indicator
             messagesContainer.insertBefore(messageDiv, typingIndicator);
             scrollToBottom();
         }
@@ -622,11 +625,9 @@
             const message = messageInput.value.trim();
             if (!message) return;
 
-            // Add user message
             addMessage(message, true);
             messageInput.value = '';
 
-            // Show typing indicator and disable input
             showTyping(true);
             setInputEnabled(false);
 
@@ -638,6 +639,7 @@
                     },
                     body: JSON.stringify({
                         message: message,
+                        sessionId: sessionId,
                         timestamp: new Date().toISOString(),
                         source: 'looker-chat-widget'
                     })
@@ -649,7 +651,6 @@
 
                 const data = await response.json();
                 
-                // Handle different response formats from n8n
                 let botResponse = '';
                 if (typeof data === 'string') {
                     botResponse = data;
@@ -689,12 +690,10 @@
             }
         }
 
-        // Focus input on load
         window.addEventListener('load', () => {
             messageInput.focus();
         });
 
-        // Handle iframe resize messages (for Looker Studio)
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'resize') {
                 // Handle resize if needed
